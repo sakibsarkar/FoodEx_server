@@ -16,6 +16,24 @@ app.use(cors({
 app.use(cookieParser())
 
 
+// varify token 
+
+const varifyToken = (req, res, next) => {
+    const token = req.cookie.token
+    if (!token) {
+        return res.status(401).send({ message: "forbiden access" })
+    }
+    jwt.verify(token, process.env.ACCESS_TOKEN, (err, decode) => {
+        if (err) {
+            return res.status(403).send({ message: "unauthorized access" })
+
+        }
+        res.userMail = decode
+        next()
+    })
+}
+
+
 const { MongoClient, ServerApiVersion } = require('mongodb');
 const uri = `mongodb+srv://${process.env.MONGO_USER}:${process.env.MONGO_PASS}@cluster0.xbiw867.mongodb.net/?retryWrites=true&w=majority`;
 console.log(process.env.MONGO_USER);
