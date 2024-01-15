@@ -19,7 +19,7 @@ app.use(cookieParser())
 // varify token 
 
 const varifyToken = (req, res, next) => {
-    const token = req.cookie.token
+    const token = req.cookies.token
     if (!token) {
         return res.status(401).send({ message: "forbiden access" })
     }
@@ -28,7 +28,7 @@ const varifyToken = (req, res, next) => {
             return res.status(403).send({ message: "unauthorized access" })
 
         }
-        res.userMail = decode
+        req.userEmail = decode
         next()
     })
 }
@@ -36,7 +36,6 @@ const varifyToken = (req, res, next) => {
 
 const { MongoClient, ServerApiVersion } = require('mongodb');
 const uri = `mongodb+srv://${process.env.MONGO_USER}:${process.env.MONGO_PASS}@cluster0.xbiw867.mongodb.net/?retryWrites=true&w=majority`;
-console.log(process.env.MONGO_USER);
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
 const client = new MongoClient(uri, {
     serverApi: {
@@ -48,6 +47,7 @@ const client = new MongoClient(uri, {
 
 // collection
 const foodCollection = client.db("FoodEx").collection("foodCollection")
+const userCollection = client.db("FoodEx").collection("userCollection")
 
 async function run() {
     try {
@@ -61,6 +61,7 @@ async function run() {
         // ------user related api -----
 
 
+        // login token
         app.post("/api/token", async (req, res) => {
             const email = req.body
             const yearInSecond = 365 * 24 * 60 * 60 //365 day in second
@@ -75,6 +76,45 @@ async function run() {
                 expires: expireDate
             }).send({ success: true });
 
+
+
+        })
+
+        // remove token
+        app.post("/api/logout", async (req, res) => {
+            res.clearCookie("token", { maxAge: 0 }).send({ message: "cookie removed" })
+        })
+
+
+        // add user to the Db
+        app.post("/api/add/user", varifyToken, async (req, res) => {
+            const { email } = req.userEmail
+            const body = req.body
+            const isExist = await userCollection.findOne({ user_email: email })
+            if (isExist) {
+                return res.send([{}, { message: "success", isExist: true }])
+            }
+
+            const result = await userCollection.insertOne(body)
+            res.send([result, { message: "success", isExist: true }])
+
+        })
+
+
+        // user role 
+        app.get("/api/role", async (req, res) => {
+            const { email } = req.query
+            const find = {
+                user_email: email
+
+            }
+            const projection = {
+                _id: 0,
+                role: 1
+            }
+
+            const result = await userCollection.findOne(find, { projection: projection });
+            return res.send(result)
 
 
         })
@@ -94,6 +134,43 @@ async function run() {
             }
             const result = await foodCollection.find(find).toArray();
             return res.send(result);
+        })
+
+
+        // all foods
+        app.get("/api/allfoods", async (req, res) => {
+            const { limit = 12, currentPage = 0, category, min, max, time } = req.query
+            const skip = parseInt(limit) * parseInt(currentPage)
+
+            let find = {}
+            if (category !== "All" && category) {
+                let replica = { ...find, category: category.toLocaleLowerCase() }
+                find = replica
+            }
+
+            if (min || max) {
+                let replica = {
+                    ...find, price: {
+                        $gte: parseInt(min),
+                        $lte: parseInt(max)
+                    }
+                }
+
+                find = replica
+            }
+
+            if (time !== "All" && time) {
+                let replica = {
+                    ...find, delivery_time: {
+                        $gte: parseInt(time)
+                    }
+                }
+
+                find = replica
+            }
+
+            const result = await foodCollection.find(find).skip(skip).limit(parseInt(limit)).toArray()
+            res.send(result)
         })
 
 
