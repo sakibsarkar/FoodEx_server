@@ -4,6 +4,8 @@ const port = process.env.PORT || 5000
 const app = express()
 const cors = require("cors")
 const cookieParser = require("cookie-parser")
+const jwt = require("jsonwebtoken")
+
 
 app.use(express.json())
 app.use(cors({
@@ -35,6 +37,30 @@ async function run() {
         // await client.connect();
         // Send a ping to confirm a successful connection
         // await client.db("admin").command({ ping: 1 });
+
+
+
+        // ------user related api -----
+
+
+        app.post("/api/token", async (req, res) => {
+            const email = req.body
+            const yearInSecond = 365 * 24 * 60 * 60 //365 day in second
+            const expireDate = new Date(Date.now() + yearInSecond * 1000)
+
+            const token = jwt.sign(email, process.env.ACCESS_TOKEN, { expiresIn: "365d" })
+
+            res.cookie("token", token, {
+                httpOnly: true,
+                sameSite: process.env.NODE_ENV === "production",
+                sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
+                expires: expireDate
+            }).send({ success: true });
+
+
+
+        })
+
 
 
         // ------food related api--------
