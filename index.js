@@ -48,6 +48,29 @@ const client = new MongoClient(uri, {
 // collection
 const foodCollection = client.db("FoodEx").collection("foodCollection")
 const userCollection = client.db("FoodEx").collection("userCollection")
+const reqCollection = client.db("FoodEx").collection("reqCollection")
+
+
+// varify admin middlewere
+const varifyAdmin = async (req, res, next) => {
+    const { email } = req?.userEmail ? req.userEmail : {}
+
+    if (!email) {
+        return res.status(401).send({ message: "unauthorized access" })
+    }
+
+    const projection = { _id: 0, role: 1 };
+    const { role } = await userCollection.findOne({ user_email: email }, { projection })
+        ;
+    if (role !== "admin") {
+        return res.status(403).send({ message: "forbidded access" })
+
+    }
+
+    next()
+
+}
+
 
 async function run() {
     try {
@@ -55,6 +78,7 @@ async function run() {
         // await client.connect();
         // Send a ping to confirm a successful connection
         // await client.db("admin").command({ ping: 1 });
+
 
 
 
@@ -119,6 +143,29 @@ async function run() {
 
         })
 
+        // request post for become vendor
+        app.post("/api/vendor/request", varifyToken, async (req, res) => {
+            const { body } = req
+            const result = await reqCollection.insertOne(body)
+            res.send(result)
+        })
+
+
+
+        // check request status
+        app.get("/api/my_request", varifyToken, async (req, res) => {
+            const { email } = req.userEmail
+            const find = { owner_email: email }
+
+            const result = await reqCollection.findOne(find)
+            if (!result) {
+                return res.send({ isExist: false })
+            }
+
+            res.send({ ...result, isExist: true })
+        })
+
+
 
 
         // ------food related api--------
@@ -162,7 +209,8 @@ async function run() {
             if (time !== "All" && time) {
                 let replica = {
                     ...find, delivery_time: {
-                        $gte: parseInt(time)
+
+                        $lte: parseInt(time)
                     }
                 }
 
@@ -170,6 +218,19 @@ async function run() {
             }
 
             const result = await foodCollection.find(find).skip(skip).limit(parseInt(limit)).toArray()
+            res.send(result)
+        })
+
+
+
+        // ------- admin related api -------
+
+        // all vendor requests by user
+
+        app.get("/api/all/req", varifyToken, varifyAdmin, async (req, res) => {
+            const { status = "pending" } = req.query
+            const find = { status: status.toLocaleLowerCase() }
+            const result = await reqCollection.find(find).toArray()
             res.send(result)
         })
 
