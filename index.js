@@ -47,9 +47,9 @@ const client = new MongoClient(uri, {
 
 // collection
 const userCollection = client.db("FoodEx").collection("userCollection")
+const reqCollection = client.db("FoodEx").collection("reqCollection")
 const vendorCollection = client.db("FoodEx").collection("vendorCollection")
 const foodCollection = client.db("FoodEx").collection("foodCollection")
-const reqCollection = client.db("FoodEx").collection("reqCollection")
 
 
 // varify admin middlewere
@@ -64,6 +64,26 @@ const varifyAdmin = async (req, res, next) => {
     const { role } = await userCollection.findOne({ user_email: email }, { projection })
         ;
     if (role !== "admin") {
+        return res.status(403).send({ message: "forbidded access" })
+
+    }
+
+    next()
+
+}
+
+// varify vendor middlewere
+const varifyVendor = async (req, res, next) => {
+    const { email } = req?.userEmail ? req.userEmail : {}
+
+    if (!email) {
+        return res.status(401).send({ message: "unauthorized access" })
+    }
+
+    const projection = { _id: 0, role: 1 };
+    const { role } = await userCollection.findOne({ user_email: email }, { projection });
+
+    if (role !== "vendor") {
         return res.status(403).send({ message: "forbidded access" })
 
     }
@@ -273,6 +293,19 @@ async function run() {
             res.send(result)
         })
 
+
+
+        // ------- vendor related api ---------
+        app.post("/api/add/item", varifyToken, varifyVendor, async (req, res) => {
+            const { body } = req
+            const { email } = req.userEmail
+            if (body.vendor_email !== email) {
+                return res.status(403).send({ message: "forbidded access" })
+            }
+
+            const result = await foodCollection.insertOne(body)
+            res.send(result)
+        })
 
 
 
