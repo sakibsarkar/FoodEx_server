@@ -296,6 +296,8 @@ async function run() {
 
 
         // ------- vendor related api ---------
+
+        // add item
         app.post("/api/add/item", varifyToken, varifyVendor, async (req, res) => {
             const { body } = req
             const { email } = req.userEmail
@@ -304,6 +306,27 @@ async function run() {
             }
 
             const result = await foodCollection.insertOne(body)
+            res.send(result)
+        })
+
+        app.get("/api/myshop", varifyToken, varifyVendor, async (req, res) => {
+            const { email } = req.query
+            const find = { owner_email: email }
+            const projection = {
+                _id: 1,
+                vendor_name: 1
+            }
+            const result = await vendorCollection.findOne(find, { projection })
+
+            res.send(result)
+        })
+
+
+        // venodor based products 
+        app.get("/api/my_items", varifyToken, varifyVendor, async (req, res) => {
+            const { email } = req.query
+            const find = { vendor_email: email }
+            const result = await foodCollection.find(find).toArray()
             res.send(result)
         })
 
