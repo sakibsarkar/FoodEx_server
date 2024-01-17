@@ -187,6 +187,16 @@ async function run() {
         })
 
 
+        // get shop(vendor) details
+        app.get("/api/shop", varifyToken, async (req, res) => {
+            const { vendor_id } = req.query
+            const find = { _id: new ObjectId(vendor_id) }
+            const result = await vendorCollection.findOne(find)
+            res.send(result)
+        })
+
+
+
 
 
         // ------food related api--------
