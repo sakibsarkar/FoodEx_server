@@ -34,7 +34,7 @@ const varifyToken = (req, res, next) => {
 }
 
 
-const { MongoClient, ServerApiVersion } = require('mongodb');
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const uri = `mongodb+srv://${process.env.MONGO_USER}:${process.env.MONGO_PASS}@cluster0.xbiw867.mongodb.net/?retryWrites=true&w=majority`;
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
 const client = new MongoClient(uri, {
@@ -46,8 +46,9 @@ const client = new MongoClient(uri, {
 });
 
 // collection
-const foodCollection = client.db("FoodEx").collection("foodCollection")
 const userCollection = client.db("FoodEx").collection("userCollection")
+const vendorCollection = client.db("FoodEx").collection("vendorCollection")
+const foodCollection = client.db("FoodEx").collection("foodCollection")
 const reqCollection = client.db("FoodEx").collection("reqCollection")
 
 
@@ -231,6 +232,44 @@ async function run() {
             const { status = "pending" } = req.query
             const find = { status: status.toLocaleLowerCase() }
             const result = await reqCollection.find(find).toArray()
+            res.send(result)
+        })
+
+        //  vendor reequest action 
+        app.put('/api/req/process', varifyToken, varifyAdmin, async (req, res) => {
+            const { status, id } = req.body
+            const find = { _id: new ObjectId(id) }
+            const update = {
+                $set: {
+                    status: status
+                }
+            }
+
+            const result = await reqCollection.updateOne(find, update)
+            res.send(result)
+
+        })
+
+
+        // add a new vendor 
+        app.post("/api/new/vendor", varifyToken, varifyAdmin, (req, res) => {
+            const { body } = req
+            const result = vendorCollection.insertOne(body)
+            res.send(result)
+        })
+
+        // change the user status 
+
+        app.put("/api/user/role", varifyToken, varifyAdmin, async (req, res) => {
+            const { email, role } = req.body
+            const find = { user_email: email }
+            const update = {
+                $set: {
+                    role: role
+                }
+            }
+
+            const result = await userCollection.updateOne(find, update)
             res.send(result)
         })
 
