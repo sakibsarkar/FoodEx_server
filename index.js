@@ -195,6 +195,24 @@ async function run() {
             res.send(result)
         })
 
+        // get item of shop(vendor)
+
+        app.get("/api/shop_items", varifyToken, async (req, res) => {
+            const { category, id } = req.query
+            let find = { vendor_id: id }
+            if (category.toLocaleLowerCase() !== "all" && category) {
+                const replica = { ...find, category: category.toLocaleLowerCase() }
+                find = replica
+
+            }
+
+            const result = await foodCollection.find(find).toArray()
+            res.send(result)
+
+
+
+        })
+
 
 
 
