@@ -5,6 +5,7 @@ const app = express()
 const cors = require("cors")
 const cookieParser = require("cookie-parser")
 const jwt = require("jsonwebtoken")
+const stripe = require("stripe")(process.env.STRIPE)
 
 
 app.use(express.json())
@@ -268,6 +269,20 @@ async function run() {
 
             const result = await foodCollection.find(find).skip(skip).limit(parseInt(limit)).toArray()
             res.send(result)
+        })
+
+
+        // payment intent 
+        app.post("/api/paymentIntent", varifyToken, async (req, res) => {
+            const { price } = req.body
+
+            const amount = parseInt(price) * 100
+            const { client_secret } = await stripe.paymentIntents.create({
+                amount: amount,
+                currency: "usd",
+                payment_method_types: ["card"]
+            })
+            res.send({ client_secret })
         })
 
 
