@@ -51,6 +51,8 @@ const userCollection = client.db("FoodEx").collection("userCollection")
 const reqCollection = client.db("FoodEx").collection("reqCollection")
 const vendorCollection = client.db("FoodEx").collection("vendorCollection")
 const foodCollection = client.db("FoodEx").collection("foodCollection")
+const myOrdersCollection = client.db("FoodEx").collection("myOrdersCollection")
+const todoOrderCollection = client.db("FoodEx").collection("todoOrderCollection")
 
 
 // varify admin middlewere
@@ -215,6 +217,25 @@ async function run() {
         })
 
 
+        app.post("/api/placeOrder", varifyToken, async (req, res) => {
+            const { body } = req
+            // add order in vendor 
+            const { insertedId } = await todoOrderCollection.insertOne(body)
+
+
+
+            // add order in user order history
+            const result = await myOrdersCollection.insertOne({
+                ...body,
+                order_id: insertedId?.toString()
+            })
+
+
+
+            res.send({ success: true })
+        })
+
+
 
 
 
@@ -374,6 +395,47 @@ async function run() {
         })
 
 
+        // get all pending orders
+        app.get("/api/myPendings", varifyToken, varifyVendor, async (req, res) => {
+
+            const { vendor_id } = req.query
+
+            const find = {
+                order_status: "pending",
+                "orderData.0.vendor_id": vendor_id
+
+            }
+
+            const result = await todoOrderCollection.find(find).toArray()
+            res.send(result)
+        })
+
+
+
+        // order completed
+        app.put("/api/order/complete", varifyToken, varifyVendor, async (req, res) => {
+            const { id } = req.query
+            const update = {
+                $set: {
+                    order_status: "completed"
+                }
+            }
+            const result = await todoOrderCollection.updateOne({
+                _id: new ObjectId(id)
+            }, update)
+
+            const result_ = await myOrdersCollection.updateOne({
+                order_id: id
+            }, update)
+
+            res.send({ succes: true })
+        })
+
+
+        // app.get("/api", async (req, res) => {
+        //     const result = await todoOrderCollection.find().toArray()
+        //     res.send(result)
+        // })
 
 
         console.log("Pinged your deployment. You successfully connected to MongoDB!");
