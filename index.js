@@ -175,6 +175,15 @@ async function run() {
         })
 
 
+        // order history
+        app.get("/api/orderHisotry", varifyToken, async (req, res) => {
+            const { email } = req.userEmail
+            const find = { user_email: email }
+            const result = await myOrdersCollection.find(find).toArray()
+            res.send(result)
+        })
+
+
 
         // check request status
         app.get("/api/my_request", varifyToken, async (req, res) => {
