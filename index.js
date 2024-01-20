@@ -10,7 +10,7 @@ const stripe = require("stripe")(process.env.STRIPE)
 
 app.use(express.json())
 app.use(cors({
-    origin: ["http://localhost:5173"],
+    origin: ["http://localhost:5173", "https://foodex-82499.web.app"],
     credentials: true
 }))
 
@@ -119,7 +119,7 @@ async function run() {
 
             res.cookie("token", token, {
                 httpOnly: true,
-                sameSite: process.env.NODE_ENV === "production",
+                secure: process.env.NODE_ENV === "production",
                 sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
                 expires: expireDate
             }).send({ success: true });
@@ -176,7 +176,7 @@ async function run() {
 
 
         // order history
-        app.get("/api/orderHisotry", varifyToken, async (req, res) => {
+        app.get("/api/orderHistory", varifyToken, async (req, res) => {
             const { email } = req.userEmail
             const find = { user_email: email }
             const result = await myOrdersCollection.find(find).toArray()
@@ -204,6 +204,12 @@ async function run() {
             const { vendor_id } = req.query
             const find = { _id: new ObjectId(vendor_id) }
             const result = await vendorCollection.findOne(find)
+            res.send(result)
+        })
+
+        // get all shop data
+        app.get("/api/all/shop", async (req, res) => {
+            const result = await vendorCollection.find().toArray()
             res.send(result)
         })
 
@@ -263,10 +269,21 @@ async function run() {
             return res.send(result);
         })
 
+        // all food name only
+        app.get("/api/food/names", async (req, res) => {
+            const projection = {
+                _id: 0,
+                name: 1
+            }
+
+            const result = await foodCollection.find({}, { projection }).toArray()
+            res.send(result)
+        })
+
 
         // all foods
         app.get("/api/allfoods", async (req, res) => {
-            const { limit = 12, currentPage = 0, category, min, max, time } = req.query
+            const { limit = 12, currentPage = 0, category, min, max, time, search } = req.query
             const skip = parseInt(limit) * parseInt(currentPage)
 
             let find = {}
@@ -295,6 +312,15 @@ async function run() {
                 }
 
                 find = replica
+            }
+
+            if (search) {
+                let replica = {
+                    ...find
+                    , name: new RegExp(search, "i")
+                }
+                find = replica
+
             }
 
             const result = await foodCollection.find(find).skip(skip).limit(parseInt(limit)).toArray()
