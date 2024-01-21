@@ -392,6 +392,23 @@ async function run() {
             res.send(result)
         })
 
+        // get all users
+
+        app.get("/api/all/user", varifyToken, varifyAdmin, async (req, res) => {
+
+            const { email } = req.userEmail
+            console.log(email);
+            const find = {
+                user_email: { $ne: email }
+            }
+
+            console.log(find);
+
+            const result = await userCollection.find(find).toArray()
+            res.send(result)
+
+        })
+
 
 
         // ------- vendor related api ---------
