@@ -324,7 +324,8 @@ async function run() {
             }
 
             const result = await foodCollection.find(find).skip(skip).limit(parseInt(limit)).toArray()
-            res.send(result)
+            const totalData = (await foodCollection.find(find).toArray()).length
+            res.send({ result, totalData })
         })
 
 
@@ -481,6 +482,24 @@ async function run() {
             }, update)
 
             res.send({ succes: true })
+        })
+
+
+        // get all completed order 
+        app.get("/api/my-states", varifyToken, varifyVendor, async (req, res) => {
+            const { email } = req.userEmail
+            const find = {
+                vendor_email: email,
+                order_status: "completed"
+            }
+
+            const projection = {
+                _id: 0,
+                total: 1,
+                date: 1
+            }
+            const result = await todoOrderCollection.find(find, { projection }).toArray()
+            res.send(result)
         })
 
 
