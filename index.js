@@ -130,7 +130,12 @@ async function run() {
 
         // remove token
         app.post("/api/logout", async (req, res) => {
-            res.clearCookie("token", { maxAge: 0 }).send({ message: "cookie removed" })
+            res.clearCookie("token", {
+                maxAge: 0,
+                secure: process.env.NODE_ENV === 'production',
+                sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'strict',
+
+            }).send({ message: "cookie removed" })
         })
 
 
@@ -493,12 +498,8 @@ async function run() {
                 order_status: "completed"
             }
 
-            const projection = {
-                _id: 0,
-                total: 1,
-                date: 1
-            }
-            const result = await todoOrderCollection.find(find, { projection }).toArray()
+
+            const result = await todoOrderCollection.find(find).toArray()
             res.send(result)
         })
 
