@@ -149,7 +149,7 @@ async function run() {
             }
 
             const result = await userCollection.insertOne(body)
-            res.send([result, { message: "success", isExist: true }])
+            res.send([result, { message: "success", isExist: false }])
 
         })
 
@@ -470,7 +470,7 @@ async function run() {
 
 
 
-        // order completed
+        // post order completed
         app.put("/api/order/complete", varifyToken, varifyVendor, async (req, res) => {
             const { id } = req.query
             const update = {
@@ -502,6 +502,8 @@ async function run() {
             const result = await todoOrderCollection.find(find).toArray()
             res.send(result)
         })
+
+
 
 
         // app.get("/api", async (req, res) => {
