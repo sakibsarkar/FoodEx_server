@@ -565,6 +565,31 @@ async function run() {
         })
 
 
+        // comment delete
+
+        app.delete("/api/comment", varifyToken, async (req, res) => {
+            const { comment_id } = req.query
+            const { userEmail } = req
+
+            const find = {
+                _id: new ObjectId(comment_id)
+            }
+
+
+            const comment = await commentsCollection.findOne(find)
+
+            if (comment.email !== userEmail.email) {
+                return res.status(403).send({ message: "Unauthrized access" })
+            }
+
+            const result = await commentsCollection.deleteOne(find)
+            res.send(result)
+
+
+
+        })
+
+
 
         console.log("Pinged your deployment. You successfully connected to MongoDB!");
     } finally {
