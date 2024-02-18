@@ -48,6 +48,7 @@ const client = new MongoClient(uri, {
 
 // collection
 const userCollection = client.db("FoodEx").collection("userCollection")
+const commentsCollection = client.db("FoodEx").collection("commentsCollection")
 const reqCollection = client.db("FoodEx").collection("reqCollection")
 const vendorCollection = client.db("FoodEx").collection("vendorCollection")
 const foodCollection = client.db("FoodEx").collection("foodCollection")
@@ -253,6 +254,38 @@ async function run() {
 
 
             res.send({ success: true })
+        })
+
+
+
+        //---------- ----- user comments Related api ------- ---------
+
+
+        // get all comments for specific vendor profile
+        app.get("/api/comments", async (req, res) => {
+            const { vendor_id } = req.query
+
+            const find = {
+                shop_id: vendor_id,
+                visible: true
+            }
+
+            const result = await commentsCollection.find(find).toArray()
+            res.send(result)
+
+        })
+
+
+        // post comment
+        app.post("/api/comments", varifyToken, async (req, res) => {
+            const { body } = req
+            if (!body) {
+                return;
+            }
+
+            const result = await commentsCollection.insertOne(body)
+            res, send(result)
+
         })
 
 
@@ -504,12 +537,6 @@ async function run() {
         })
 
 
-
-
-        // app.get("/api", async (req, res) => {
-        //     const result = await todoOrderCollection.find().toArray()
-        //     res.send(result)
-        // })
 
 
         console.log("Pinged your deployment. You successfully connected to MongoDB!");
