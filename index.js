@@ -284,10 +284,9 @@ async function run() {
             }
 
             const result = await commentsCollection.insertOne(body)
-            res, send(result)
+            res.send(result)
 
         })
-
 
 
 
