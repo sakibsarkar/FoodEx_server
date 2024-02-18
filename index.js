@@ -535,6 +535,34 @@ async function run() {
             res.send(result)
         })
 
+        // update comment
+        app.put("/api/comment", varifyToken, async (req, res) => {
+            const { comment_id, } = req.query
+
+            // userEmail from varifytoken middlewere
+            const { userEmail, body } = req
+
+            const find = { _id: new ObjectId(comment_id) }
+
+            // find the comment
+            const comment = await commentsCollection.findOne(find)
+
+
+            if (comment.email !== userEmail.email) {
+                return res.status(403).send({ message: "Unauthrized access" })
+            }
+
+            const update = {
+                $set: {
+                    comment: body.comment
+                }
+            }
+
+            const updateResult = await commentsCollection.updateOne(find, update)
+            res.send(updateResult)
+
+
+        })
 
 
 
