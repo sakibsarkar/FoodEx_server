@@ -49,6 +49,7 @@ const client = new MongoClient(uri, {
 // collection
 const userCollection = client.db("FoodEx").collection("userCollection")
 const commentsCollection = client.db("FoodEx").collection("commentsCollection")
+const reportCollection = client.db("FoodEx").collection("reportCollection")
 const reqCollection = client.db("FoodEx").collection("reqCollection")
 const vendorCollection = client.db("FoodEx").collection("vendorCollection")
 const foodCollection = client.db("FoodEx").collection("foodCollection")
@@ -586,6 +587,27 @@ async function run() {
             res.send(result)
 
 
+
+        })
+
+
+        // post a report for the commennt
+        app.post("/api/report/comment", varifyToken, async (req, res) => {
+            const { body, userEmail } = req;
+
+            const find = {
+                comment_id: body.comment_id,
+                reportedBy: userEmail?.email
+            }
+
+            // check is there is already a report for this comment;
+            const isExist = await reportCollection.findOne(find)
+            
+            if (isExist) return res.send({ isExist: true });
+
+            // post the report
+            const result = await reportCollection.insertOne(body);
+            res.send(result);
 
         })
 
