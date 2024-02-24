@@ -1,101 +1,29 @@
 require('dotenv').config()
+const { ObjectId } = require('mongodb')
 const express = require("express")
 const port = process.env.PORT || 5000
 const app = express()
-const cors = require("cors")
-const cookieParser = require("cookie-parser")
 const jwt = require("jsonwebtoken")
 const stripe = require("stripe")(process.env.STRIPE)
+const applyMiddlewere = require('./middleweres/applyMiddlewere')
 
+applyMiddlewere(app)
 
-app.use(express.json())
-app.use(cors({
-    origin: ["http://localhost:5173", "https://foodex-82499.web.app"],
-    credentials: true
-}))
+// connect db 
+const client = require("./DB/connectDB")
+// db collections
+const collections = require("./DB/collections")
 
-app.use(cookieParser())
+const { userCollection, commentsCollection, reportCollection, reqCollection, vendorCollection, foodCollection, myOrdersCollection, todoOrderCollection } = collections(client())
+
 
 
 // varify token 
-
-const varifyToken = (req, res, next) => {
-    const token = req.cookies.token
-    if (!token) {
-        return res.status(401).send({ message: "forbiden access" })
-    }
-    jwt.verify(token, process.env.ACCESS_TOKEN, (err, decode) => {
-        if (err) {
-            return res.status(403).send({ message: "unauthorized access" })
-
-        }
-        req.userEmail = decode
-        next()
-    })
-}
-
-
-const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
-const uri = `mongodb+srv://${process.env.MONGO_USER}:${process.env.MONGO_PASS}@cluster0.xbiw867.mongodb.net/?retryWrites=true&w=majority`;
-// Create a MongoClient with a MongoClientOptions object to set the Stable API version
-const client = new MongoClient(uri, {
-    serverApi: {
-        version: ServerApiVersion.v1,
-        strict: true,
-        deprecationErrors: true,
-    }
-});
-
-// collection
-const userCollection = client.db("FoodEx").collection("userCollection")
-const commentsCollection = client.db("FoodEx").collection("commentsCollection")
-const reportCollection = client.db("FoodEx").collection("reportCollection")
-const reqCollection = client.db("FoodEx").collection("reqCollection")
-const vendorCollection = client.db("FoodEx").collection("vendorCollection")
-const foodCollection = client.db("FoodEx").collection("foodCollection")
-const myOrdersCollection = client.db("FoodEx").collection("myOrdersCollection")
-const todoOrderCollection = client.db("FoodEx").collection("todoOrderCollection")
-
-
-// varify admin middlewere
-const varifyAdmin = async (req, res, next) => {
-    const { email } = req?.userEmail ? req.userEmail : {}
-
-    if (!email) {
-        return res.status(401).send({ message: "unauthorized access" })
-    }
-
-    const projection = { _id: 0, role: 1 };
-    const { role } = await userCollection.findOne({ user_email: email }, { projection })
-        ;
-    if (role !== "admin") {
-        return res.status(403).send({ message: "forbidded access" })
-
-    }
-
-    next()
-
-}
-
+const varifyToken = require("./middleweres/varificationMiddlweres/tokenVarify")
+// varify admin
+const varifyAdmin = require("./middleweres/varificationMiddlweres/varifyAdmin")
 // varify vendor middlewere
-const varifyVendor = async (req, res, next) => {
-    const { email } = req?.userEmail ? req.userEmail : {}
-
-    if (!email) {
-        return res.status(401).send({ message: "unauthorized access" })
-    }
-
-    const projection = { _id: 0, role: 1 };
-    const { role } = await userCollection.findOne({ user_email: email }, { projection });
-
-    if (role !== "vendor") {
-        return res.status(403).send({ message: "forbidded access" })
-
-    }
-
-    next()
-
-}
+const varifyVendor = require("./middleweres/varificationMiddlweres/varifyVendor")
 
 
 async function run() {
@@ -436,16 +364,21 @@ async function run() {
         app.get("/api/all/user", varifyToken, varifyAdmin, async (req, res) => {
 
             const { email } = req.userEmail
-            console.log(email);
             const find = {
                 user_email: { $ne: email }
             }
 
-            console.log(find);
 
             const result = await userCollection.find(find).toArray()
             res.send(result)
 
+        })
+
+
+        // get all reported comments
+        app.get("/api/reports", varifyToken, varifyAdmin, async (req, res) => {
+            const result = await reportCollection.find().toArray()
+            res.send(result)
         })
 
 
@@ -602,7 +535,7 @@ async function run() {
 
             // check is there is already a report for this comment;
             const isExist = await reportCollection.findOne(find)
-            
+
             if (isExist) return res.send({ isExist: true });
 
             // post the report
